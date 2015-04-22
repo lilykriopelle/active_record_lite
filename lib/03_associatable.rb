@@ -23,6 +23,19 @@ class BelongsToOptions < AssocOptions
     self.primary_key = (options[:primary_key].nil? ? "id".to_sym : options[:primary_key])
     self.class_name = (options[:class_name].nil? ? name.to_s.camelcase : options[:class_name])
   end
+
+  def where_cond(klass, included_ids)
+    <<-SQL
+      #{klass.table_name}.#{options[:foreign_key]} IN #{included_ids}
+    SQL
+  end
+
+  def match(associated, base)
+    base.find do |obj|
+      obj.send(options[:foreign_key]) == associated.send(options[:primary_key])
+    end
+  end
+
 end
 
 class HasManyOptions < AssocOptions
@@ -31,6 +44,19 @@ class HasManyOptions < AssocOptions
     self.primary_key = (options[:primary_key].nil? ? "id".to_sym : options[:primary_key])
     self.class_name = (options[:class_name].nil? ? name.to_s.singularize.camelcase : options[:class_name])
   end
+
+  def where_cond(klass, included_ids)
+    <<-SQL
+      #{table_name}.#{options[:foreign_key]} IN #{included_ids}
+    SQL
+  end
+
+  def match(associated, base)
+    base.find do |obj|
+      obj.send(options[:primary_key]) == associated.send(options[:foreign_key])
+    end
+  end
+
 end
 
 module Associatable

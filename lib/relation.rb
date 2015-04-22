@@ -6,61 +6,42 @@ class Relation
     @klass = klass
     @table = table
     @where_conditions = where_conditions
+    @loaded = false
     @records = []
   end
 
   def where(new_where_conds)
-    self.new(klass, table, where_conditions.merge(new_where_conds))
+    Relation.new(klass, table, where_conditions.merge(new_where_conds))
   end
 
   def includes(association)
-    self.load
-    opts = klass.assoc_options[association]
+    base = Relation.new(klass, table, where_conditions)
+    opts = assoc_options[association]
+    associated = Relation.new(opts.class_name,
+                              opts.table_name,
+                              klass.opts.where_cond(klass, included_ids)
+    )
 
-    if opts.is_a?(BelongsToOptions)
-      DBConnection.execute(belongs_to_query(opts))
-    elsif opts.is_a?(HasManyOptions)
-      DBConnection.execute(has_many_query(opts))
+    base_objs = klass.parse_all(base)
+    associated_objs = associated.klass.parse_all(associated)
+
+    pairs = Hash.new { [] }
+    associated_objs.each do |associated|
+      match = association.match(associated, base)
+      pairs[match] << associated
     end
   end
 
-  def included_ids_string
-    ids = @records.map{ |record| record.id }
-    "(#{ids.join(", ")})"
-  end
-
-  def belongs_to_query(opts)
-    <<-SQL
-      SELECT
-        *
-      FROM
-        #{table_name}
-      LEFT OUTER JOIN
-        #{opts.table_name}
-      ON
-        #{opts.table_name}.id = #{table_name}.#{opts.foreign_key}
-      WHERE
-        #{table_name}.#{opts.foreign_key} IN #{included_ids_string}
-    SQL
-  end
-
-  def has_many_query(opts, included_object_ids)
-    <<-SQL
-      SELECT
-        *
-      FROM
-        #{table_name}
-      LEFT OUTER JOIN
-        #{opts.table_name}
-      ON
-        #{table_name}.id = #{opts.table_name}.#{opts.foreign_key}
-      WHERE
-        #{opts.table_name}.#{opts.foreign_key} IN #{included_ids_string}
-    SQL
+  def included_ids
+    "(#{ @records.map(&:id).join(", ") })"
   end
 
   def where_clause
-    where_conditions.map{|k,v| "#{table_name}.#{k} = #{v}" }.join(" AND ")
+    if where_conditions.is_a?(Hash)
+      where_conditions.map { |k,v| "#{table_name}.#{k} = #{v}" }.join(" AND ")
+    else
+      where_conditions
+    end
   end
 
   def load
@@ -74,6 +55,7 @@ class Relation
     SQL
 
     @records.concat(DBConnection.execute(records))
+    @loaded = true
   end
 
   def any?
@@ -87,5 +69,4 @@ class Relation
   def table_name
     table
   end
-
 end
