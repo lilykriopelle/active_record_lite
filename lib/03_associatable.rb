@@ -1,7 +1,6 @@
 require_relative '02_searchable'
 require 'active_support/inflector'
 
-# Phase IIIa
 class AssocOptions
   attr_accessor(
     :foreign_key,
@@ -26,7 +25,6 @@ class BelongsToOptions < AssocOptions
   end
 end
 
-require 'byebug'
 class HasManyOptions < AssocOptions
   def initialize(name, self_class_name, options = {})
     self.foreign_key = (options[:foreign_key].nil? ? "#{self_class_name.to_s.underscore}_id".to_sym : options[:foreign_key])
