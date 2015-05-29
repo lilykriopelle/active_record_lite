@@ -1,4 +1,4 @@
-require '01_sql_object'
+require_relative '../active_record_lite'
 require 'securerandom'
 
 describe SQLObject do

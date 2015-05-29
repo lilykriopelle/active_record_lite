@@ -40,5 +40,5 @@ PLATFORMS
 DEPENDENCIES
   activesupport
   byebug
-  rspec (~> 3.1.0)
+  rspec
   sqlite3
