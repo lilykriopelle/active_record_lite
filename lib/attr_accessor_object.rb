@@ -1,6 +1,5 @@
 class AttrAccessorObject
   def self.attribute_accessor(*names)
-
     names.each do |ivar|
       define_method(ivar) { self.instance_variable_get("@#{ivar}") }
       define_method("#{ivar}=") do |val|
